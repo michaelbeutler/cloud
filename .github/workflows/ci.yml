@@ -7,6 +7,7 @@ env:
   TF_VAR_openstack_application_credential_secret: ${{ secrets.OPENSTACK_APPLICATION_CREDENTIAL_SECRET }}
   TF_VAR_openstack_auth_url: ${{ vars.OPENSTACK_AUTH_URL }}
   TF_VAR_openstack_region: ${{ vars.OPENSTACK_REGION }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 on:
   push:
