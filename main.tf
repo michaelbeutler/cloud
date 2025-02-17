@@ -6,6 +6,10 @@ terraform {
       source  = "terraform-provider-openstack/openstack"
       version = "~> 1.53.0"
     }
+    github = {
+      source  = "hashicorp/github"
+      version = "6.5.0"
+    }
   }
 }
 
@@ -17,6 +21,8 @@ provider "openstack" {
   auth_url                      = var.openstack_auth_url
   region                        = var.openstack_region
 }
+
+provider "github" {}
 
 module "access" {
   source = "./access"
