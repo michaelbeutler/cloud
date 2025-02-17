@@ -27,3 +27,7 @@ provider "github" {}
 module "access" {
   source = "./access"
 }
+
+module "orchestrator" {
+  source = "./03-orchestrator"
+}
