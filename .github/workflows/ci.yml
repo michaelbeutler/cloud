@@ -2,33 +2,26 @@ name: CI 🚧
 
 on:
   push:
+    paths:
+      - "**.tf"
   pull_request:
     branches:
       - main
 
 jobs:
-  setup:
-    name: Setup 🚧
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: opentofu/setup-opentofu@v1
-
-      - name: OpenTofu Init
-        id: init
-        run: tofu init
-
   validate:
     name: Validate ✅
     runs-on: ubuntu-latest
-    needs: setup
     permissions:
       contents: read
     
     steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+      - name: OpenTofu Init
+        id: init
+        run: tofu init
+
       - name: OpenTofu fmt
         id: fmt
         run: tofu fmt -check
@@ -39,12 +32,18 @@ jobs:
   plan:
     name: Plan 📖
     runs-on: ubuntu-latest
-    needs: setup
+    needs: validate
     permissions:
       pull-requests: write
       contents: read
-    
+
     steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+      - name: OpenTofu Init
+        id: init
+        run: tofu init
+        
       - name: OpenTofu Plan
         id: plan
         run: tofu plan -no-color
