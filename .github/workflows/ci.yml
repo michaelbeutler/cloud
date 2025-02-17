@@ -1,5 +1,13 @@
 name: CI 🚧
 
+env:
+  TF_VAR_openstack_user_name: ${{ secrets.OPENSTACK_USERNAME }}
+  TF_VAR_openstack_tenant_name: ${{ vars.OPENSTACK_TENANT_NAME }}
+  TF_VAR_openstack_application_credential_name: ${{ secrets.OPENSTACK_APPLICATION_CREDENTIAL_NAME }}
+  TF_VAR_openstack_application_credential_secret: ${{ secrets.OPENSTACK_APPLICATION_CREDENTIAL_SECRET }}
+  TF_VAR_openstack_auth_url: ${{ vars.OPENSTACK_AUTH_URL }}
+  TF_VAR_openstack_region: ${{ vars.OPENSTACK_REGION }}
+
 on:
   push:
     paths:
@@ -33,6 +41,7 @@ jobs:
     name: Plan 📖
     runs-on: ubuntu-latest
     needs: validate
+    timeout-minutes: 5
     permissions:
       pull-requests: write
       contents: read

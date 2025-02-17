@@ -3,7 +3,7 @@ variable "openstack_user_name" {
 }
 
 variable "openstack_tenant_name" {
-  sensitive = true
+  sensitive = false
 }
 
 variable "openstack_application_credential_name" {
