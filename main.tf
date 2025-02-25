@@ -29,5 +29,5 @@ module "access" {
 }
 
 module "orchestrator" {
-  source = "./03-orchestrator"
+  source = "./01-iaas"
 }
