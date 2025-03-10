@@ -51,8 +51,8 @@ resource "openstack_networking_port_v2" "node" {
 }
 
 resource "openstack_networking_floatingip_v2" "node" {
-  for_each    = toset(["node01", "node02", "node03"])
-  pool = "public"
+  for_each = toset(["node01", "node02", "node03"])
+  pool     = "public"
 }
 
 resource "local_file" "hosts_cfg" {
@@ -65,15 +65,29 @@ resource "local_file" "hosts_cfg" {
       ])
     }
   )
-  filename = "./ansible/inventory/hosts.cfg"
-  depends_on = [ openstack_networking_floatingip_v2.node ]
+  filename   = "./ansible/inventory/hosts.cfg"
+  depends_on = [openstack_networking_floatingip_v2.node]
+}
+
+resource "local_file" "net" {
+  content = templatefile("${path.module}/templates/net.tpl",
+    {
+      proxmox_hosts = toset([
+        { ip = openstack_compute_instance_v2.node["node01"].access_ip_v4, hostname = "node01" },
+        { ip = openstack_compute_instance_v2.node["node02"].access_ip_v4, hostname = "node02" },
+        { ip = openstack_compute_instance_v2.node["node03"].access_ip_v4, hostname = "node03" },
+      ])
+    }
+  )
+  filename   = "./ansible/hosts"
+  depends_on = [openstack_compute_instance_v2.node]
 }
 
 resource "openstack_networking_floatingip_associate_v2" "node" {
   for_each    = toset(["node01", "node02", "node03"])
   floating_ip = openstack_networking_floatingip_v2.node[each.key].address
   port_id     = openstack_networking_port_v2.node[each.key].id
-  depends_on = [ openstack_networking_floatingip_v2.node ]
+  depends_on  = [openstack_networking_floatingip_v2.node]
 }
 
 # Spawn 3 instances called node01, node02, node03
