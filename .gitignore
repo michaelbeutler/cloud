@@ -66,3 +66,5 @@ terraform.rc
 *_REMOTE_*.txt
 
 # End of https://www.toptal.com/developers/gitignore/api/terraform,ansible,basic,git
+
+id_rsa

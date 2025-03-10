@@ -32,6 +32,16 @@ resource "openstack_networking_secgroup_rule_v2" "ssh" {
   security_group_id = openstack_networking_secgroup_v2.proxmox.id
 }
 
+resource "openstack_networking_secgroup_rule_v2" "web-ui" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 8006
+  port_range_max    = 8006
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = openstack_networking_secgroup_v2.proxmox.id
+}
+
 resource "openstack_networking_port_v2" "node" {
   for_each           = toset(["node01", "node02", "node03"])
   name               = each.key
@@ -45,6 +55,20 @@ resource "openstack_networking_floatingip_v2" "node" {
   pool = "public"
 }
 
+resource "local_file" "hosts_cfg" {
+  content = templatefile("${path.module}/templates/hosts.tpl",
+    {
+      proxmox_hosts = toset([
+        openstack_networking_floatingip_v2.node["node01"].address,
+        openstack_networking_floatingip_v2.node["node02"].address,
+        openstack_networking_floatingip_v2.node["node03"].address,
+      ])
+    }
+  )
+  filename = "./ansible/inventory/hosts.cfg"
+  depends_on = [ openstack_networking_floatingip_v2.node ]
+}
+
 resource "openstack_networking_floatingip_associate_v2" "node" {
   for_each    = toset(["node01", "node02", "node03"])
   floating_ip = openstack_networking_floatingip_v2.node[each.key].address
@@ -56,8 +80,8 @@ resource "openstack_networking_floatingip_associate_v2" "node" {
 resource "openstack_compute_instance_v2" "node" {
   for_each  = toset(["node01", "node02", "node03"])
   name      = each.key
-  image_id  = "54ee4d6e-9155-4698-ab2b-45d9067e8e8e"
-  flavor_id = "a421ad62-9aa6-4154-b9ae-9e8af4b64af9"
+  image_id  = "654bf798-579b-47aa-a7f7-8a8798c9779d"
+  flavor_id = "592bcbc2-456b-484b-bdd0-12bcb85c1dae"
   user_data = file("${path.module}/cloud-init.yml")
 
   network {

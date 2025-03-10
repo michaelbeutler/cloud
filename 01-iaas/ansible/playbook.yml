@@ -1,0 +1,61 @@
+- name: Install Proxmox
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Add an Apt signing key, uses whichever key is at the URL
+      ansible.builtin.apt_key:
+        url: https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg
+        state: present
+
+    - name: Add Proxmox no-subscription repository
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/pve-no-subscription.list
+        content: |
+          deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription
+        mode: '0644'  # Ensure correct permissions
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Upgrade all packages
+      ansible.builtin.apt:
+        upgrade: full
+        autoremove: true
+        autoclean: true
+
+    - name: Install proxmox-default-kernel
+      ansible.builtin.apt:
+        pkg:
+          - proxmox-default-kernel
+
+    - name: Reboot
+      ansible.builtin.reboot:
+
+    - name: Install a list of packages
+      ansible.builtin.apt:
+        pkg:
+          - proxmox-ve
+          - postfix
+          - open-iscsi
+          - chrony
+
+    - name: Remove Debian default kernel packages
+      ansible.builtin.apt:
+        name:
+          - linux-image-amd64
+          - 'linux-image-6.1*'
+        state: absent
+        autoremove: true
+
+    - name: Update GRUB configuration
+      ansible.builtin.command: update-grub
+      register: grub_update_output
+      changed_when: "'Generating grub configuration' in grub_update_output.stdout"
+
+    - name: Remove os-prober package
+      ansible.builtin.apt:
+        name: os-prober
+        state: absent
+        autoremove: true
