@@ -1,0 +1,31 @@
+#cloud-config
+users:
+  - default
+  - name: michaelbeutler
+    gecos: Michael Beutler
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: sudo
+    shell: /bin/bash
+    ssh_import_id:
+      - gh:michaelbeutler
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCIK2v6RlOHQLdO3CPI85DYTPtZlftSmJle5IfJP9btuZ0VfBxE+iXq5pJMwe4bpjImbgpc9CuZ2CIxAuDBUbGflfLTEzuJBmh4+2YGG2UychFEB7RKhPEkJpPSXjBD6JV5XODhaPxEqCNJDSNRwgMuUB6yQs//1T57hr6ysOGxEbFmlyZtXpxRbSSBOSsj3UNtcuuLrAvjIpL5B0vA9FsAmvAdDRZR1aYyBJcNyMJmcFZn0w8klYGPIpe35PbXYD+Dyy1xHk91s0PRWmHt9cBY/Iex377DoFVLm+HIqziL6Yh5/lCs+CBFHRidBtVJtribEU3xUgUEh+wA+FfiK4wLlt6KJkLEkrCmCGu5dWFuJft2oMipzpCMKk32LlFIVBVcbv+Vdkd/re4QVfssL1jT3oYat2iYTDwNrXcSSbblPIaHsOMMqkzW212IeD4Fb03KaxrfOSVEV30iRwVE86ItDVmdykyo99OKdKheWSBx6RzUe1A6jmk4DSCIJfbf/YE=
+  - name: eval
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: sudo
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1MjEAAACFBAGd1sEHWR+J1kz4TokLXzpTFGFO8dX3T1zWjQ0rJqsnrx1m8nTotpWTuqgQCgtIzQ8Usvy4wK3/pRV1raFtYThvEgHleB85YOaSiFEYs1rUz6KkQ8lhKuSXYLp8YnJtv0MCJNfm8jY816RvOqa+v7mS/+67ly4PXwf1jfibzw1bSZHc4w== snorwin@nano-x1
+    lock_passwd: true
+
+packages:
+  - ssh-import-id
+  - wget
+  - curl
+  - gnupg
+  - lsb-release
+  - software-properties-common
+  - open-iscsi
+  - chrony
+  - git

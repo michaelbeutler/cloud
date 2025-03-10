@@ -2,9 +2,9 @@ variable "openstack_user_name" {
   sensitive = true
 }
 
-variable "openstack_tenant_name" {
-  sensitive = false
-}
+# variable "openstack_tenant_name" {
+#   sensitive = false
+# }
 
 variable "openstack_application_credential_name" {
   sensitive = true
@@ -28,4 +28,8 @@ variable "openstack_region" {
     condition     = can(regex("[a-zA-Z0-9]+", var.openstack_region))
     error_message = "The region must be a valid string"
   }
+}
+
+variable "ssh_private_key" {
+  sensitive = true
 }
