@@ -3,23 +3,100 @@
   become: true
 
   tasks:
-    - name: Copy hosts file
+    - name: Gather Ansible facts
+      ansible.builtin.setup:
+      when: ansible_default_ipv4.address is not defined
+
+    - name: Disable Cloud-Init /etc/hosts Override
+      ansible.builtin.command:
+        cmd: "touch /etc/cloud/cloud-init.disabled"
+      changed_when: false
+
+    - name: Update /etc/hosts file with all nodes dynamically
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        block: |
+          {% for host in groups['proxmox_hosts'] %}
+          {{ hostvars[host]['ansible_default_ipv4']['address'] }}    {{ host }}
+          {% endfor %}
+        marker: "# Ansible managed block (Proxmox Cluster Nodes)"
+        state: present
+      notify: Restart networking
+
+    - name: Remove old 127.0.0.1 entries for nodes
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regex: '^127.0.0.1\s+{{ inventory_hostname }}.*'
+        state: absent
+      notify: Restart networking
+
+    - name: Ensure /etc/network/interfaces.d/ exists
+      ansible.builtin.file:
+        path: /etc/network/interfaces.d/
+        state: directory
+        mode: "0755"
+
+    - name: Check if /etc/network/interfaces exists
+      ansible.builtin.stat:
+        path: /etc/network/interfaces
+      register: interfaces_stat
+
+    - name: Ensure /etc/network/interfaces exists
+      ansible.builtin.file:
+        path: /etc/network/interfaces
+        state: touch
+        mode: "0644"
+      when: not interfaces_stat.stat.exists
+
+    - name: Populate /etc/network/interfaces if empty
+      ansible.builtin.blockinfile:
+        path: /etc/network/interfaces
+        block: |
+          source /etc/network/interfaces.d/*
+          auto lo
+          iface lo inet loopback
+        marker: "# Ansible managed block (Network Configuration)"
+        state: present
+      when: interfaces_stat.stat.exists and interfaces_stat.stat.size == 0
+
+    - name: Set up vmbr0 bridge interface dynamically
+      ansible.builtin.template:
+        src: "templates/interfaces.j2"
+        dest: "/etc/network/interfaces.d/vmbr0"
+        mode: "0644"
+      notify: Restart networking
+
+    - name: Ensure Proxmox Network Configuration Persists After Reboot
       ansible.builtin.copy:
-        dest: /etc/hosts
-        src: hosts
-        mode: '0644'
+        src: "/etc/network/interfaces"
+        dest: "/etc/network/interfaces.new"
+        remote_src: true  # This ensures the file is copied remotely, not from the controller
+        mode: "0644"
+
+    - name: Apply persistent network configuration
+      ansible.builtin.command: "cp /etc/network/interfaces.new /etc/network/interfaces"
+      changed_when: false
 
     - name: Add an Apt signing key, uses whichever key is at the URL
       ansible.builtin.apt_key:
         url: https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg
         state: present
 
-    - name: Add Proxmox no-subscription repository
+    - name: Disable Proxmox Enterprise Repository
+      ansible.builtin.file:
+        path: /etc/apt/sources.list.d/pve-enterprise.list
+        state: absent
+
+    - name: Add Proxmox No-Subscription Repository
       ansible.builtin.copy:
         dest: /etc/apt/sources.list.d/pve-no-subscription.list
         content: |
           deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription
-        mode: '0644'  # Ensure correct permissions
+        mode: "0644"
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
 
     - name: Update apt cache
       ansible.builtin.apt:
@@ -32,12 +109,11 @@
         autoclean: true
 
     - name: Install proxmox-default-kernel
+      register: proxmox_kernel
       ansible.builtin.apt:
         pkg:
           - proxmox-default-kernel
-
-    - name: Reboot
-      ansible.builtin.reboot:
+      notify: Reboot
 
     - name: Install a list of packages
       ansible.builtin.apt:
@@ -65,3 +141,39 @@
         name: os-prober
         state: absent
         autoremove: true
+
+    - name: Ensure corosync is installed
+      ansible.builtin.apt:
+        name: corosync
+        state: present
+        update_cache: true
+
+    - name: Check if Proxmox cluster exists
+      ansible.builtin.command: "pvecm status"
+      register: cluster_status
+      changed_when: false
+      failed_when: false
+
+    - name: Create Proxmox Cluster on Master
+      ansible.builtin.command: "pvecm create cloud-fs25-03"
+      when:
+        - inventory_hostname in groups['proxmox_master']
+        - not cluster_status.stdout.find('Cluster information') != -1
+      changed_when: "'Cluster information' in cluster_status.stdout"
+      failed_when: "'Cluster information' not in cluster_status.stdout"
+
+    - name: Join Proxmox Cluster on Nodes
+      ansible.builtin.command: "pvecm add node01"
+      when:
+        - inventory_hostname not in groups['proxmox_master']
+        - not cluster_status.stdout.find('Cluster information') != -1
+      changed_when: "'Cluster information' in cluster_status.stdout"
+      failed_when: "'Cluster information' not in cluster_status.stdout"
+
+  handlers:
+    - name: Restart networking
+      ansible.builtin.systemd:
+        name: networking
+        state: restarted
+    - name: Reboot
+      ansible.builtin.reboot:

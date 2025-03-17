@@ -42,45 +42,44 @@ resource "openstack_networking_secgroup_rule_v2" "web-ui" {
   security_group_id = openstack_networking_secgroup_v2.proxmox.id
 }
 
+resource "openstack_networking_network_v2" "iaas" {
+  name           = "iaas"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_router_v2" "iaas" {
+  name                = "iaas"
+  admin_state_up      = true
+  external_network_id = "3cc83f7d-9119-475b-ba17-f3510c7902e8"
+}
+
+resource "openstack_networking_subnet_v2" "management" {
+  name       = "management"
+  network_id = openstack_networking_network_v2.iaas.id
+  cidr       = "10.0.10.0/24"
+  ip_version = 4
+}
+
+resource "openstack_networking_router_interface_v2" "management" {
+  router_id = openstack_networking_router_v2.iaas.id
+  subnet_id = openstack_networking_subnet_v2.management.id
+}
+
 resource "openstack_networking_port_v2" "node" {
-  for_each           = toset(["node01", "node02", "node03"])
-  name               = each.key
-  network_id         = "c34c17a4-341e-463e-ab52-eed4817387ad"
+  for_each = toset(["node01", "node02", "node03"])
+  name     = each.key
+  # network_id         = "c34c17a4-341e-463e-ab52-eed4817387ad"
+  network_id         = openstack_networking_network_v2.iaas.id
   admin_state_up     = "true"
-  security_group_ids = [openstack_networking_secgroup_v2.proxmox.id]
+  security_group_ids = [openstack_networking_secgroup_v2.proxmox.id, "e0fe42d3-b1a6-4958-bab9-2e176415e2b1"]
+  fixed_ip {
+    subnet_id = openstack_networking_subnet_v2.management.id
+  }
 }
 
 resource "openstack_networking_floatingip_v2" "node" {
   for_each = toset(["node01", "node02", "node03"])
   pool     = "public"
-}
-
-resource "local_file" "hosts_cfg" {
-  content = templatefile("${path.module}/templates/hosts.tpl",
-    {
-      proxmox_hosts = toset([
-        openstack_networking_floatingip_v2.node["node01"].address,
-        openstack_networking_floatingip_v2.node["node02"].address,
-        openstack_networking_floatingip_v2.node["node03"].address,
-      ])
-    }
-  )
-  filename   = "./ansible/inventory/hosts.cfg"
-  depends_on = [openstack_networking_floatingip_v2.node]
-}
-
-resource "local_file" "net" {
-  content = templatefile("${path.module}/templates/net.tpl",
-    {
-      proxmox_hosts = toset([
-        { ip = openstack_compute_instance_v2.node["node01"].access_ip_v4, hostname = "node01" },
-        { ip = openstack_compute_instance_v2.node["node02"].access_ip_v4, hostname = "node02" },
-        { ip = openstack_compute_instance_v2.node["node03"].access_ip_v4, hostname = "node03" },
-      ])
-    }
-  )
-  filename   = "./ansible/hosts"
-  depends_on = [openstack_compute_instance_v2.node]
 }
 
 resource "openstack_networking_floatingip_associate_v2" "node" {
@@ -101,4 +100,18 @@ resource "openstack_compute_instance_v2" "node" {
   network {
     port = openstack_networking_port_v2.node[each.key].id
   }
+}
+
+resource "local_file" "hosts_cfg" {
+  content = templatefile("${path.module}/templates/hosts.tpl",
+    {
+      proxmox_hosts = [
+        { ip = openstack_networking_floatingip_v2.node["node01"].address, hostname = "node01", local_ip = openstack_compute_instance_v2.node["node01"].access_ip_v4 },
+        { ip = openstack_networking_floatingip_v2.node["node02"].address, hostname = "node02", local_ip = openstack_compute_instance_v2.node["node02"].access_ip_v4 },
+        { ip = openstack_networking_floatingip_v2.node["node03"].address, hostname = "node03", local_ip = openstack_compute_instance_v2.node["node03"].access_ip_v4 }
+      ]
+    }
+  )
+  filename   = "./ansible/inventory/hosts.cfg"
+  depends_on = [openstack_networking_floatingip_v2.node]
 }
