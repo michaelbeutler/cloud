@@ -66,7 +66,7 @@ resource "openstack_networking_router_interface_v2" "container" {
 }
 
 resource "openstack_networking_port_v2" "container-host" {
-  name     = "container-host"
+  name               = "container-host"
   network_id         = openstack_networking_network_v2.container.id
   admin_state_up     = "true"
   security_group_ids = [openstack_networking_secgroup_v2.container.id, "e0fe42d3-b1a6-4958-bab9-2e176415e2b1"]
@@ -76,7 +76,7 @@ resource "openstack_networking_port_v2" "container-host" {
 }
 
 resource "openstack_networking_floatingip_v2" "container-host" {
-  pool     = "public"
+  pool = "public"
 }
 
 resource "openstack_networking_floatingip_associate_v2" "container-host" {
@@ -102,10 +102,10 @@ resource "openstack_compute_instance_v2" "container-host" {
     destination = "/home/michaelbeutler/monitoringstack-main"
 
     connection {
-      type     = "ssh"
-      user     = "michaelbeutler"
+      type        = "ssh"
+      user        = "michaelbeutler"
       private_key = file("${path.module}/id_rsa")
-      host     = openstack_networking_floatingip_v2.container-host.address
+      host        = openstack_networking_floatingip_v2.container-host.address
     }
   }
 }
