@@ -1,0 +1,2 @@
+GF_SECURITY_ADMIN_PASSWORD=fs25_cloud_pass_for_grafana
+GF_USERS_ALLOW_SIGN_UP=false

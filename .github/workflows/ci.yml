@@ -26,7 +26,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        module: [01-iaas]
+        module: [02-container]
     
     steps:
       - uses: actions/checkout@v4
