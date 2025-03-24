@@ -41,6 +41,10 @@ jobs:
         run: tofu fmt -check
         working-directory: ${{ matrix.module }}
 
+      - name: Copy private key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ${{ matrix.module }}/id_rsa
+
       - name: OpenTofu Validate
         id: validate
         run: tofu validate -no-color
@@ -56,7 +60,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        module: [01-iaas]
+        module: [02-container]
 
     steps:
       - uses: actions/checkout@v4
@@ -66,6 +70,10 @@ jobs:
         run: tofu init
         working-directory: ${{ matrix.module }}
         
+      - name: Copy private key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ${{ matrix.module }}/id_rsa
+
       - name: OpenTofu Plan
         id: plan
         run: tofu plan -no-color
@@ -144,7 +152,7 @@ jobs:
 
     strategy:
       matrix:
-        module: [01-iaas]
+        module: [02-container]
 
     steps:
       - uses: actions/checkout@v4
@@ -153,6 +161,10 @@ jobs:
         id: init
         run: tofu init
         working-directory: ${{ matrix.module }}
+
+      - name: Copy private key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ${{ matrix.module }}/id_rsa
 
       - name: OpenTofu Apply
         id: apply
